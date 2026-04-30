@@ -1,0 +1,9 @@
+services:
+  lexicovoice:
+    build: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./generated_audio:/app/generated_audio
+      - ./temp_files:/app/temp_files
+    restart: unless-stopped

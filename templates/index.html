@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LexiVoice - 单词音频生成器</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="logo">
+                <span class="logo-icon">🎙️</span>
+                <h1>LexiVoice</h1>
+            </div>
+            <p class="subtitle">智能单词音频生成器 - 支持字母拼写朗读</p>
+        </header>
+
+        <main class="main-content">
+            <!-- 设置面板 -->
+            <section class="settings-panel">
+                <h2 class="section-title">
+                    <span class="icon">⚙️</span>
+                    参数设置
+                </h2>
+
+                <div class="settings-grid">
+                    <div class="setting-item">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="includeSpelling" checked>
+                            <span class="checkmark"></span>
+                            <span class="label-text">包含字母拼写读音</span>
+                        </label>
+                        <p class="setting-hint">开启后会在单词发音后逐字母朗读</p>
+                    </div>
+
+                    <div class="setting-item">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="includeChinese">
+                            <span class="checkmark"></span>
+                            <span class="label-text">添加中文翻译朗读</span>
+                        </label>
+                        <p class="setting-hint">自动获取有道词典翻译并添加中文发音</p>
+                    </div>
+
+                    <div class="setting-item">
+                        <label for="letterPause">字母间隔停顿</label>
+                        <div class="range-wrapper">
+                            <input type="range" id="letterPauseRange" min="100" max="1000" value="300" step="50">
+                            <input type="number" id="letterPause" value="300" min="100" max="1000" step="50">
+                            <span class="unit">ms</span>
+                        </div>
+                    </div>
+
+                    <div class="setting-item">
+                        <label for="wordPause">单词间隔停顿</label>
+                        <div class="range-wrapper">
+                            <input type="range" id="wordPauseRange" min="500" max="5000" value="2000" step="100">
+                            <input type="number" id="wordPause" value="2000" min="500" max="5000" step="100">
+                            <span class="unit">ms</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 预览面板 -->
+            <section class="preview-panel">
+                <h2 class="section-title">
+                    <span class="icon">🎧</span>
+                    预览效果
+                </h2>
+
+                <div class="preview-content">
+                    <div class="preview-word">
+                        <span class="word-label">示例单词:</span>
+                        <span class="word-value">Voice</span>
+                    </div>
+                    <button id="previewBtn" class="btn btn-primary btn-preview">
+                        <span class="btn-icon">▶</span>
+                        播放预览
+                    </button>
+                    <button id="stopPreviewBtn" class="btn btn-secondary btn-stop" style="display: none;">
+                        <span class="btn-icon">⏹</span>
+                        停止
+                    </button>
+                </div>
+
+                <div id="previewStatus" class="status-bar"></div>
+            </section>
+
+            <!-- 文件上传面板 -->
+            <section class="upload-panel">
+                <h2 class="section-title">
+                    <span class="icon">📁</span>
+                    导入单词列表
+                </h2>
+
+                <div class="upload-area" id="uploadArea">
+                    <input type="file" id="fileInput" accept=".txt" hidden>
+                    <div class="upload-content">
+                        <span class="upload-icon">📄</span>
+                        <p class="upload-text">点击或拖拽上传 txt 文件</p>
+                        <p class="upload-hint">支持英文逗号分隔或每行一个单词，最多 20 个</p>
+                    </div>
+                </div>
+
+                <div id="fileInfo" class="file-info" style="display: none;">
+                    <span class="file-name" id="fileName"></span>
+                    <span class="word-count" id="wordCount"></span>
+                </div>
+
+                <div id="wordListPreview" class="word-list-preview" style="display: none;">
+                    <h3>单词列表预览:</h3>
+                    <div class="word-tags" id="wordTags"></div>
+                </div>
+            </section>
+
+            <!-- 生成控制 -->
+            <section class="generate-section">
+                <button id="generateBtn" class="btn btn-large btn-generate" disabled>
+                    <span class="btn-icon">🎵</span>
+                    开始生成音频
+                </button>
+                <div id="progressContainer" class="progress-container" style="display: none;">
+                    <div class="progress-bar">
+                        <div id="progressFill" class="progress-fill"></div>
+                    </div>
+                    <div id="progressText" class="progress-text"></div>
+                </div>
+                <div id="generateStatus" class="status-bar" style="margin-top: 16px;"></div>
+            </section>
+
+            <!-- 生成结果 -->
+            <section id="resultsSection" class="results-section" style="display: none;">
+                <h2 class="section-title">
+                    <span class="icon">✅</span>
+                    生成结果
+                </h2>
+
+                <div class="results-header">
+                    <span class="results-count" id="resultsCount"></span>
+                    <button id="downloadAllBtn" class="btn btn-success">
+                        <span class="btn-icon">📦</span>
+                        打包下载全部
+                    </button>
+                </div>
+
+                <div class="results-list" id="resultsList"></div>
+            </section>
+        </main>
+
+        <footer class="footer">
+            <p>基于 Microsoft Edge TTS · 有道翻译 API</p>
+        </footer>
+    </div>
+
+    <!-- Toast 通知 -->
+    <div id="toast" class="toast"></div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
