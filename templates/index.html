@@ -30,9 +30,27 @@
                         <label class="checkbox-label">
                             <input type="checkbox" id="includeSpelling" checked>
                             <span class="checkmark"></span>
-                            <span class="label-text">包含字母拼写读音</span>
+                            <span class="label-text">字母拼写读音</span>
                         </label>
                         <p class="setting-hint">开启后会在单词发音后逐字母朗读</p>
+                    </div>
+
+                    <div class="setting-item">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="includeWordSpelling" disabled>
+                            <span class="checkmark"></span>
+                            <span class="label-text">组词拼写读音</span>
+                        </label>
+                        <p class="setting-hint">开启后词组会逐词拼写，依赖字母拼写读音</p>
+                    </div>
+
+                    <div class="setting-item">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="includeChineseDefinition">
+                            <span class="checkmark"></span>
+                            <span class="label-text">导入中文释义</span>
+                        </label>
+                        <p class="setting-hint">导入格式为：英文, 中文，每行一个单词</p>
                     </div>
 
                     <div class="setting-item">

@@ -29,6 +29,8 @@ const generateStatusBar = document.getElementById('generateStatus');
 
 // Settings Elements
 const includeSpelling = document.getElementById('includeSpelling');
+const includeWordSpelling = document.getElementById('includeWordSpelling');
+const includeChineseDefinition = document.getElementById('includeChineseDefinition');
 const includeChinese = document.getElementById('includeChinese');
 const letterPause = document.getElementById('letterPause');
 const letterPauseRange = document.getElementById('letterPauseRange');
@@ -72,12 +74,33 @@ wordPause.addEventListener('change', () => {
 
 // 勾选框变化时重置预览
 includeSpelling.addEventListener('change', () => {
+    updateWordSpellingState();
     if (previewGenerated) resetPreviewState();
+});
+
+includeWordSpelling.addEventListener('change', () => {
+    if (previewGenerated) resetPreviewState();
+});
+
+includeChineseDefinition.addEventListener('change', () => {
+    if (selectedFile) {
+        handleFile(selectedFile);
+    }
 });
 
 includeChinese.addEventListener('change', () => {
     if (previewGenerated) resetPreviewState();
 });
+
+// 更新组词拼写状态
+function updateWordSpellingState() {
+    if (includeSpelling.checked) {
+        includeWordSpelling.disabled = false;
+    } else {
+        includeWordSpelling.disabled = true;
+        includeWordSpelling.checked = false;
+    }
+}
 
 // File Upload Handling
 uploadArea.addEventListener('click', () => fileInput.click());
@@ -111,26 +134,46 @@ function handleFile(file) {
     fileName.textContent = file.name;
     fileInfo.style.display = 'flex';
 
+    // 隐藏之前的生成结果
+    resultsSection.style.display = 'none';
+    currentSessionId = null;
+
     const reader = new FileReader();
     reader.onload = (e) => {
         const content = e.target.result;
-        const words = parseWords(content);
-        wordCount.textContent = `共 ${words.length} 个单词`;
+        let parsed;
 
-        if (words.length > 100) {
+        if (includeChineseDefinition.checked) {
+            parsed = parseWordPairs(content);
+            if (parsed.error) {
+                showToast(parsed.error, 'error');
+                selectedFile = null;
+                fileInfo.style.display = 'none';
+                return;
+            }
+        } else {
+            parsed = { items: parseWords(content), error: '' };
+        }
+
+        wordCount.textContent = `共 ${parsed.items.length} 个单词`;
+
+        if (parsed.items.length > 100) {
             showToast('单词数量不能超过100个', 'error');
             selectedFile = null;
             fileInfo.style.display = 'none';
             return;
         }
 
-        if (words.length > 0) {
-            wordTags.innerHTML = words.slice(0, 50).map(word =>
-                `<span class="word-tag">${word}</span>`
-            ).join('') + (words.length > 50 ? '<span class="word-tag">...</span>' : '');
+        if (parsed.items.length > 0) {
+            wordTags.innerHTML = parsed.items.slice(0, 50).map(item => {
+                if (includeChineseDefinition.checked) {
+                    return `<span class="word-tag">${item.word}：${item.chinese}</span>`;
+                }
+                return `<span class="word-tag">${item}</span>`;
+            }).join('') + (parsed.items.length > 50 ? '<span class="word-tag">...</span>' : '');
 
-            if (words.length > 50) {
-                wordTags.innerHTML += `<span class="word-tag">还有 ${words.length - 50} 个</span>`;
+            if (parsed.items.length > 50) {
+                wordTags.innerHTML += `<span class="word-tag">还有 ${parsed.items.length - 50} 个</span>`;
             }
 
             wordListPreview.style.display = 'block';
@@ -138,6 +181,30 @@ function handleFile(file) {
         }
     };
     reader.readAsText(file);
+}
+
+function parseWordPairs(content) {
+    const lines = content.split(/\r?\n/);
+    const items = [];
+
+    for (let rawLine of lines) {
+        const line = rawLine.trim();
+        if (!line) continue;
+        const parts = line.split(',');
+        if (parts.length < 2) {
+            return { items: [], error: '导入中文释义时，每行格式应为：英文, 中文' };
+        }
+
+        const word = parts[0].trim();
+        const chinese = parts.slice(1).join(',').trim();
+        if (!word || !chinese) {
+            return { items: [], error: '导入中文释义时，每行格式应为：英文, 中文' };
+        }
+
+        items.push({ word, chinese });
+    }
+
+    return { items, error: '' };
 }
 
 function parseWords(content) {
@@ -164,6 +231,7 @@ async function generatePreview() {
                 letterPause: parseInt(letterPause.value),
                 wordPause: parseInt(wordPause.value),
                 includeSpelling: includeSpelling.checked,
+                includeWordSpelling: includeWordSpelling.checked,
                 includeChinese: includeChinese.checked
             })
         });
@@ -318,6 +386,8 @@ generateBtn.addEventListener('click', async () => {
         formData.append('letterPause', letterPause.value);
         formData.append('wordPause', wordPause.value);
         formData.append('includeSpelling', includeSpelling.checked.toString());
+        formData.append('includeWordSpelling', includeWordSpelling.checked.toString());
+        formData.append('includeChineseDefinition', includeChineseDefinition.checked.toString());
         formData.append('includeChinese', includeChinese.checked.toString());
 
         setGenerateStatus('正在处理单词并生成音频...', 'loading');
@@ -412,3 +482,8 @@ function showToast(message, type = '') {
         toast.className = 'toast';
     }, 3000);
 }
+
+// 初始化设置状态
+document.addEventListener('DOMContentLoaded', () => {
+    updateWordSpellingState();
+});

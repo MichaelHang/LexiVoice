@@ -81,7 +81,7 @@ async def generate_audio_segment(text, filename, voice=VOICE):
     return audio
 
 
-async def generate_preview_audio(letter_pause_ms, word_pause_ms, include_spelling, include_chinese):
+async def generate_preview_audio(letter_pause_ms, word_pause_ms, include_spelling, include_word_spelling, include_chinese):
     """生成预览音频 - 使用 'Voice' 作为示例单词"""
     session_id = str(uuid.uuid4())
     session_dir = os.path.join(app.config['OUTPUT_DIR'], session_id)
@@ -138,7 +138,7 @@ async def generate_preview_audio(letter_pause_ms, word_pause_ms, include_spellin
         return None, session_id
 
 
-async def generate_word_audio(word_en, word_cn, letter_pause_ms, word_pause_ms, include_spelling, include_chinese, session_dir):
+async def generate_word_audio(word_en, word_cn, letter_pause_ms, word_pause_ms, include_spelling, include_word_spelling, include_chinese, session_dir):
     """为单个单词生成音频"""
     temp_files_to_clean = []
     combined = AudioSegment.empty()
@@ -157,12 +157,24 @@ async def generate_word_audio(word_en, word_cn, letter_pause_ms, word_pause_ms, 
         print(f"  ✓ 单词发音生成成功")
 
         # 2. 如果需要包含字母拼写
-        if include_spelling:
+        if include_spelling and ' ' not in word_en:
             for char in word_en:
                 if char.isalpha():
                     char_audio = await generate_audio_segment(char, os.path.join(session_dir, "temp_char.mp3"))
                     combined += char_audio + pause_letter
             print(f"  ✓ 字母拼写生成成功")
+
+        # 2.5. 如果需要包含组词拼写（词组逐词拼写）
+        if include_word_spelling and ' ' in word_en:
+            words_in_phrase = word_en.split()
+            for phrase_word in words_in_phrase:
+                for char in phrase_word:
+                    if char.isalpha():
+                        char_audio = await generate_audio_segment(char, os.path.join(session_dir, "temp_phrase_char.mp3"))
+                        combined += char_audio + pause_letter
+                # 词间停顿
+                combined += pause_word
+            print(f"  ✓ 组词拼写生成成功")
 
         # 3. 再次读单词
         temp_file2 = os.path.join(session_dir, f"temp_{word_en}_2.mp3")
@@ -207,16 +219,16 @@ async def generate_word_audio(word_en, word_cn, letter_pause_ms, word_pause_ms, 
         return None, None
 
 
-async def process_words_async(words, letter_pause_ms, word_pause_ms, include_spelling, include_chinese, session_id):
+async def process_words_async(word_entries, letter_pause_ms, word_pause_ms, include_spelling, include_word_spelling, include_chinese, include_chinese_definition, session_id):
     """异步处理所有单词"""
     session_dir = os.path.join(app.config['OUTPUT_DIR'], session_id)
     os.makedirs(session_dir, exist_ok=True)
 
     results = []
-    total = len(words)
+    total = len(word_entries)
     
-    for i, word in enumerate(words):
-        word = word.strip()
+    for i, entry in enumerate(word_entries):
+        word = entry['word'].strip()
         if not word:
             continue
 
@@ -226,9 +238,15 @@ async def process_words_async(words, letter_pause_ms, word_pause_ms, include_spe
         generation_progress['word'] = word
 
         # 获取中文翻译（多个）
-        word_cn_list = get_youdao_translation(word) if include_chinese else []
+        if include_chinese_definition:
+            word_cn_list = [entry['chinese']] if entry.get('chinese') else []
+        elif include_chinese:
+            word_cn_list = get_youdao_translation(word)
+        else:
+            word_cn_list = []
+
         file_name, file_path = await generate_word_audio(
-            word, word_cn_list, letter_pause_ms, word_pause_ms, include_spelling, include_chinese, session_dir
+            word, word_cn_list, letter_pause_ms, word_pause_ms, include_spelling, include_word_spelling, include_chinese, session_dir
         )
         if file_name:
             results.append({"word": word, "filename": file_name, "chinese": ", ".join(word_cn_list)})
@@ -278,10 +296,11 @@ def preview():
     letter_pause = int(data.get('letterPause', 300))
     word_pause = int(data.get('wordPause', 2000))
     include_spelling = data.get('includeSpelling', True)
+    include_word_spelling = data.get('includeWordSpelling', False)
     include_chinese = data.get('includeChinese', False)
 
     audio_path, session_id = asyncio.run(
-        generate_preview_audio(letter_pause, word_pause, include_spelling, include_chinese)
+        generate_preview_audio(letter_pause, word_pause, include_spelling, include_word_spelling, include_chinese)
     )
 
     if audio_path and os.path.exists(audio_path):
@@ -308,21 +327,41 @@ def generate():
     letter_pause = int(request.form.get('letterPause', 300))
     word_pause = int(request.form.get('wordPause', 2000))
     include_spelling = request.form.get('includeSpelling', 'true').lower() == 'true'
+    include_word_spelling = request.form.get('includeWordSpelling', 'false').lower() == 'true'
     include_chinese = request.form.get('includeChinese', 'false').lower() == 'true'
+    include_chinese_definition = request.form.get('includeChineseDefinition', 'false').lower() == 'true'
 
     # 读取并解析单词列表
     content = file.read().decode('utf-8').strip()
     words = []
-    if ',' in content:
-        words = [w.strip() for w in content.split(',')]
+    word_entries = []
+    if include_chinese_definition:
+        for line in content.splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            parts = line.split(',')
+            if len(parts) < 2:
+                return jsonify({"success": False, "error": "导入中文释义时，每行格式应为：英文, 中文"})
+            english = parts[0].strip()
+            chinese = ','.join(parts[1:]).strip()
+            if not english or not chinese:
+                return jsonify({"success": False, "error": "导入中文释义时，每行格式应为：英文, 中文"})
+            word_entries.append({"word": english, "chinese": chinese})
     else:
-        words = [w.strip() for w in content.splitlines() if w.strip()]
+        if ',' in content:
+            words = [w.strip() for w in content.split(',') if w.strip()]
+        else:
+            words = [w.strip() for w in content.splitlines() if w.strip()]
+
+    if not include_chinese_definition:
+        word_entries = [{"word": w, "chinese": ""} for w in words]
 
     # 限制数量
-    if len(words) > 20:
+    if len(word_entries) > 20:
         return jsonify({"success": False, "error": "单词数量不能超过20个"})
 
-    if len(words) == 0:
+    if len(word_entries) == 0:
         return jsonify({"success": False, "error": "文件中没有找到有效单词"})
 
     # 生成会话ID
@@ -331,14 +370,14 @@ def generate():
     # 初始化进度
     generation_progress['session_id'] = session_id
     generation_progress['current'] = 0
-    generation_progress['total'] = len(words)
+    generation_progress['total'] = len(word_entries)
     generation_progress['word'] = ''
     generation_progress['completed'] = False
 
     # 处理单词
     try:
         results, _ = asyncio.run(
-            process_words_async(words, letter_pause, word_pause, include_spelling, include_chinese, session_id)
+            process_words_async(word_entries, letter_pause, word_pause, include_spelling, include_word_spelling, include_chinese, include_chinese_definition, session_id)
         )
         print(f"生成完成，结果数量: {len(results)}")
     except Exception as e:
