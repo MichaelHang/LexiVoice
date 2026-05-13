@@ -11,3 +11,4 @@ temp_files/
 *.mp3
 *.zip
 .DS_Store
+.workbuddy
