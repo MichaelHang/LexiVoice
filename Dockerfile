@@ -2,6 +2,8 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
+RUN sed -i 's/deb.debian.org/mirrors.tencent.com/g' /etc/apt/sources.list.d/debian.sources
+
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     ffmpeg \
@@ -9,7 +11,7 @@ RUN apt-get update && apt-get install -y \
 
 # Copy requirements and install Python dependencies
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -i https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt
 
 # Copy application files
 COPY app.py .
