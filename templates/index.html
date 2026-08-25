@@ -21,7 +21,6 @@
             <!-- 设置面板 -->
             <section class="settings-panel">
                 <h2 class="section-title">
-                    <span class="icon">⚙️</span>
                     参数设置
                 </h2>
 
@@ -85,7 +84,6 @@
             <!-- 预览面板 -->
             <section class="preview-panel">
                 <h2 class="section-title">
-                    <span class="icon">🎧</span>
                     预览效果
                 </h2>
 
@@ -110,7 +108,6 @@
             <!-- 文件上传面板 -->
             <section class="upload-panel">
                 <h2 class="section-title">
-                    <span class="icon">📁</span>
                     导入单词列表
                 </h2>
 
@@ -119,7 +116,7 @@
                     <div class="upload-content">
                         <span class="upload-icon">📄</span>
                         <p class="upload-text">点击或拖拽上传 txt 文件</p>
-                        <p class="upload-hint">支持英文逗号分隔或每行一个单词，最多 20 个</p>
+                        <p class="upload-hint">支持英文逗号分隔或每行一个单词，最多 100 个</p>
                     </div>
                 </div>
 
@@ -137,7 +134,6 @@
             <!-- 生成控制 -->
             <section class="generate-section">
                 <button id="generateBtn" class="btn btn-large btn-generate" disabled>
-                    <span class="btn-icon">🎵</span>
                     开始生成音频
                 </button>
                 <div id="progressContainer" class="progress-container" style="display: none;">
@@ -152,14 +148,12 @@
             <!-- 生成结果 -->
             <section id="resultsSection" class="results-section" style="display: none;">
                 <h2 class="section-title">
-                    <span class="icon">✅</span>
                     生成结果
                 </h2>
 
                 <div class="results-header">
                     <span class="results-count" id="resultsCount"></span>
                     <button id="downloadAllBtn" class="btn btn-success">
-                        <span class="btn-icon">📦</span>
                         打包下载全部
                     </button>
                 </div>
@@ -170,6 +164,7 @@
 
         <footer class="footer">
             <p>基于 Microsoft Edge TTS · 有道翻译 API</p>
+            <p class="feedback"><span class="feedback-label">意见反馈：</span><a href="mailto:hangbo@me.com" class="feedback-email">hangbo@me.com</a></p>
             <p><a href="https://beian.miit.gov.cn/" target="_blank">浙ICP备2026031977号-1</a></p>
         </footer>
     </div>

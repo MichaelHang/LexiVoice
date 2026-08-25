@@ -12,3 +12,5 @@ temp_files/
 *.zip
 .DS_Store
 .workbuddy
+usage.db
+usage_stats.csv

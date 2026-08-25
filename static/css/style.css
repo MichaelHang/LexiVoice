@@ -843,6 +843,31 @@ section {
     color: var(--accent);
 }
 
+/* ===== Feedback ===== */
+.feedback {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 4px;
+}
+
+.feedback-label {
+    color: var(--text-muted);
+}
+
+.feedback-email {
+    color: var(--accent) !important;
+    font-weight: 600;
+    border-bottom: 1px dashed transparent;
+    transition: all 0.2s ease;
+}
+
+.feedback-email:hover {
+    border-bottom-color: var(--accent);
+    text-shadow: 0 0 10px rgba(124, 131, 255, 0.5);
+}
+
 /* ===== Scrollbar ===== */
 .results-list::-webkit-scrollbar {
     width: 4px;

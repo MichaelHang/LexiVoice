@@ -33,6 +33,61 @@ generation_progress = {
 VOICE = "en-US-AvaNeural"
 CHINESE_VOICE = "zh-CN-XiaoxiaoNeural"
 
+# 使用统计数据库
+app.config['USAGE_DB'] = 'usage.db'
+app.config['USAGE_CSV'] = 'usage_stats.csv'
+
+
+def update_usage_csv():
+    """根据数据库重新生成按天聚合的 usage_stats.csv（utf-8-sig，Excel 可直接打开）"""
+    import csv
+    import sqlite3
+    try:
+        conn = sqlite3.connect(app.config['USAGE_DB'])
+        rows = conn.execute(
+            "SELECT day, COUNT(*) AS times, SUM(word_count) AS words "
+            "FROM usage_log GROUP BY day ORDER BY day"
+        ).fetchall()
+        conn.close()
+
+        total_times = sum(r[1] for r in rows)
+        total_words = sum(r[2] for r in rows)
+
+        with open(app.config['USAGE_CSV'], 'w', newline='', encoding='utf-8-sig') as f:
+            writer = csv.writer(f)
+            writer.writerow(['日期', '生成次数', '单词量'])
+            for day, times, words in rows:
+                writer.writerow([day, times, words])
+            writer.writerow(['合计', total_times, total_words])
+    except Exception as e:
+        print(f"生成统计 CSV 失败: {e}")
+
+
+def log_usage(word_count):
+    """记录一次生成使用（按天统计）。使用 SQLite，线程/进程安全，并刷新 CSV。"""
+    import sqlite3
+    from datetime import datetime
+    try:
+        conn = sqlite3.connect(app.config['USAGE_DB'])
+        conn.execute(
+            """CREATE TABLE IF NOT EXISTS usage_log (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                day TEXT NOT NULL,
+                word_count INTEGER NOT NULL,
+                created_at TEXT NOT NULL
+            )"""
+        )
+        conn.execute(
+            "INSERT INTO usage_log (day, word_count, created_at) VALUES (?, ?, ?)",
+            (datetime.now().strftime('%Y-%m-%d'), word_count, datetime.now().isoformat())
+        )
+        conn.commit()
+        conn.close()
+        update_usage_csv()
+    except Exception as e:
+        print(f"记录使用统计失败: {e}")
+
+
 
 def get_youdao_translation(word, max_meanings=4):
     """获取有道翻译的中文意思，返回多个翻译"""
@@ -358,8 +413,8 @@ def generate():
         word_entries = [{"word": w, "chinese": ""} for w in words]
 
     # 限制数量
-    if len(word_entries) > 20:
-        return jsonify({"success": False, "error": "单词数量不能超过20个"})
+    if len(word_entries) > 100:
+        return jsonify({"success": False, "error": "单词数量不能超过100个"})
 
     if len(word_entries) == 0:
         return jsonify({"success": False, "error": "文件中没有找到有效单词"})
@@ -387,6 +442,7 @@ def generate():
         return jsonify({"success": False, "error": f"处理出错: {str(e)}"})
 
     if results:
+        log_usage(len(results))
         return jsonify({
             "success": True,
             "sessionId": session_id,
