@@ -1,8 +1,8 @@
-# 🎙️ LexiVoice: 单词音频生成器 Web 版
+# LexiVoice: 单词音频生成器 Web 版
 
 **LexiVoice** 是一个功能强大的在线工具，专为英语学习者设计。它可以导入包含英文单词列表的 txt 文件，自动获取有道词典翻译，并使用 Microsoft Edge Neural TTS 生成高质量的字母拼读练习音频。
 
-## 🎧 音频结构
+## 音频结构
 
 每个生成的 MP3 都遵循优化的记忆节奏模式：
 1. **单词发音** (自然神经网络语音)
@@ -13,7 +13,7 @@
 
 ---
 
-## ✨ 主要功能
+## 主要功能
 
 - **文件导入**: 支持 txt 文件导入，批量生成时最多 20 个单词
 - **导入中文释义**: 支持 `英文, 中文` 每行格式导入，自定义中文释义后直接生成中文朗读
@@ -25,7 +25,7 @@
 
 ---
 
-## 🛠️ 本地运行
+## 本地运行
 
 ### 1. 环境要求
 
@@ -56,7 +56,7 @@ chmod +x start.sh
 
 ---
 
-## 🚀 服务器部署
+## 服务器部署
 
 ### Docker 部署 (推荐)
 
@@ -80,39 +80,9 @@ gunicorn -w 2 -b 0.0.0.0:5000 --timeout 300 app:app
 # 配置 Nginx 反向代理
 ```
 
-### PM2 部署
-
-```bash
-npm install -g pm2
-pm2 start app.py --name lexicovoice --interpreter python3
-pm2 save
-pm2 startup
-```
-
 ---
 
-## 📁 项目结构
-
-```
-LexiVoice/
-├── app.py              # Flask 后端 API
-├── templates/
-│   └── index.html      # 前端页面
-├── static/
-│   ├── css/
-│   │   └── style.css   # 样式文件
-│   └── js/
-│       └── app.js      # 前端脚本
-├── requirements.txt    # Python 依赖
-├── Dockerfile          # Docker 镜像配置
-├── docker-compose.yml  # Docker Compose 配置
-├── start.sh           # 启动脚本
-└── README.md          # 本文档
-```
-
----
-
-## 🔧 配置说明
+## 配置说明
 
 | 参数 | 默认值 | 说明 |
 |------|--------|------|
@@ -123,7 +93,7 @@ LexiVoice/
 
 ---
 
-## 📝 单词文件格式
+## 单词文件格式
 
 支持两种导入方式：
 
@@ -146,24 +116,16 @@ banana, 香蕉
 ```
 
 启用“导入中文释义”选项后，系统会使用每行提供的中文文本直接生成中文朗读。
----
-
-## 🌐 技术栈
-
-- **后端**: Flask + edge-tts + pydub
-- **前端**: 原生 HTML/CSS/JavaScript
-- **TTS**: Microsoft Edge Neural TTS
-- **翻译**: 有道词典 API
 
 ---
 
-## ⚠️ 注意事项
+## 注意事项
 
 1. 生成的音频文件存储在 `generated_audio/` 目录
 2. 临时文件存储在 `temp_files/` 目录
 3. 音频文件会在会话结束后自动清理
 4. 确保网络连接正常，以便获取翻译和生成 TTS
 
-## 📜 许可证
+## 许可证
 
 MIT License
