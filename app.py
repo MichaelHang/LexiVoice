@@ -203,7 +203,7 @@ async def generate_word_audio(word_en, word_cn, letter_pause_ms, word_pause_ms, 
 
     try:
         print(f"开始处理单词: {word_en}, 中文: {word_cn}")
-        
+
         # 1. 生成单词发音
         temp_file = os.path.join(session_dir, f"temp_{word_en}_1.mp3")
         temp_files_to_clean.append(temp_file)
@@ -257,14 +257,6 @@ async def generate_word_audio(word_en, word_cn, letter_pause_ms, word_pause_ms, 
         combined.export(output_path, format="mp3")
         print(f"  ✓ 音频导出成功: {file_name}")
 
-        # 清理临时文件
-        for f in temp_files_to_clean:
-            if os.path.exists(f):
-                try:
-                    os.remove(f)
-                except:
-                    pass
-
         return file_name, output_path
 
     except Exception as e:
@@ -272,6 +264,16 @@ async def generate_word_audio(word_en, word_cn, letter_pause_ms, word_pause_ms, 
         import traceback
         traceback.print_exc()
         return None, None
+
+    finally:
+        # 无论成功失败，都清理本会话目录下所有 temp_ 开头的临时文件
+        # （含 temp_char / temp_phrase_char / temp_cn_* 等，避免残留被打进下载压缩包）
+        for f in os.listdir(session_dir):
+            if f.startswith('temp_'):
+                try:
+                    os.remove(os.path.join(session_dir, f))
+                except:
+                    pass
 
 
 async def process_words_async(word_entries, letter_pause_ms, word_pause_ms, include_spelling, include_word_spelling, include_chinese, include_chinese_definition, session_id):
@@ -479,7 +481,8 @@ def download(session_id):
 
     with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
         for file in os.listdir(session_dir):
-            if file.endswith('.mp3'):
+            # 排除临时文件（temp_*），只打包正式生成的单词音频
+            if file.endswith('.mp3') and not file.startswith('temp_'):
                 file_path = os.path.join(session_dir, file)
                 zipf.write(file_path, file)
 

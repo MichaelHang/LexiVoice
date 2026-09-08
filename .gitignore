@@ -14,3 +14,5 @@ temp_files/
 .workbuddy
 usage.db
 usage_stats.csv
+lexivoice_local.log
+start_local.sh
